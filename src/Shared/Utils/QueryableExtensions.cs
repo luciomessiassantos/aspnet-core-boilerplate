@@ -8,7 +8,7 @@ public static class QueryableExtensions
     //<summary>
     //  Extensão do IQueryable para realizar, em uma linha, uma condição que, se verdadeira
     //  executa um Where no banco de dados com o predicado fornecido
-    //  retorna o IQueryable fornecido
+    //  retorna o IQueryable incrementado
     //</summary>
 
     public static IQueryable<T> WhereIf<T>(

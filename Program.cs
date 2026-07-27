@@ -2,6 +2,8 @@ using System.Text;
 using System.Text.Json.Serialization;
 using AspDotnetBoilerplate.src.Domain;
 using AspDotnetBoilerplate.src.Infrastructure;
+using AspDotnetBoilerplate.src.Shared.Exceptions;
+using AspDotnetBoilerplate.src.Shared.Exceptions.Handlers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -105,6 +107,9 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
+
+builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddHealthChecks();
 builder.Services.AddProblemDetails();

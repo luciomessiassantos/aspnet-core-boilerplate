@@ -1,5 +1,8 @@
 namespace AspDotnetBoilerplate.src.Shared.Utils;
 
+/// <summary>
+/// Class <c>PaginatedResult</c> define Pagination Pattern.
+/// </summary>
 public class PaginatedResult<T>
 {
     public IEnumerable<T> Data { get; init; } = [];
