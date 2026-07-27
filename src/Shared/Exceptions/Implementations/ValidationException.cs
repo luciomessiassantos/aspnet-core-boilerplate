@@ -1,4 +1,4 @@
-namespace AspDotnetBoilerplate.src.Shared.Exceptions;
+namespace AspDotnetBoilerplate.src.Shared.Exceptions.Implementations;
 
 public sealed class ValidationException : Exception
 {

@@ -1,9 +1,9 @@
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AspDotnetBoilerplate.src.Shared.Exceptions;
+namespace AspDotnetBoilerplate.src.Shared.Exceptions.Handlers;
 
-public class GlobalExceptionHandler(
+public sealed class GlobalExceptionHandler(
     ILogger<GlobalExceptionHandler> logger
 ) : IExceptionHandler
 {
@@ -19,9 +19,11 @@ public class GlobalExceptionHandler(
         // Problem Details definition
         var problem = new ProblemDetails
         {
+            Type = exception.GetType().Name,
             Status = StatusCodes.Status500InternalServerError,
             Title = "Unhandled Exception Ocurred",
-            Instance = httpContext.Request.Path
+            Instance = httpContext.Request.Path,
+            Detail = exception.Message
         };
 
         // return to response
