@@ -7,6 +7,7 @@ namespace AspDotnetBoilerplate.src.Shared.Exceptions.Handlers;
 
 
 public sealed class ValidationExceptionHandler(
+    IProblemDetailsService problemDetailsService,
     ILogger<ValidationExceptionHandler> logger 
 ) : IExceptionHandler
 {
@@ -24,20 +25,25 @@ public sealed class ValidationExceptionHandler(
         // Status Code definition
         httpContext.Response.StatusCode = StatusCodes.Status400BadRequest;
 
-        // Problem Details definition
-        var problem = new ValidationProblemDetails
+        var context = new ProblemDetailsContext
         {
-            Type = exception.GetType().Name,
-            Status = StatusCodes.Status400BadRequest,
-            Title = "Validation Error Ocurred",
-            Instance = httpContext.Request.Path,
-            Detail = exception.Message
+            HttpContext = httpContext,
+            Exception = exception,
+            ProblemDetails = new ProblemDetails
+            {
+                Type = exception.GetType().Name,
+                Status = StatusCodes.Status400BadRequest,
+                Title = "One or more validation errors ocurred",
+                Instance = httpContext.Request.Path,
+                Detail = exception.Message
+            },
+            
         };
 
-        // return to response
-        await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
+        context.ProblemDetails.Extensions.Add("errors", validationException.Errors);
 
-        return true;
+        // Problem Details Service
+        return await problemDetailsService.TryWriteAsync(context);
     }
 
 

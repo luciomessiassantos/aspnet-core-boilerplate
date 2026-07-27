@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AspDotnetBoilerplate.src.Shared.Exceptions.Handlers;
 
 public sealed class GlobalExceptionHandler(
+    IProblemDetailsService problemDetailsService,
     ILogger<GlobalExceptionHandler> logger
 ) : IExceptionHandler
 {
@@ -16,20 +17,21 @@ public sealed class GlobalExceptionHandler(
         // Status Code definition
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         
-        // Problem Details definition
-        var problem = new ProblemDetails
+        // Problem Details Service
+        return await problemDetailsService.TryWriteAsync(new ProblemDetailsContext
         {
-            Type = exception.GetType().Name,
-            Status = StatusCodes.Status500InternalServerError,
-            Title = "Unhandled Exception Ocurred",
-            Instance = httpContext.Request.Path,
-            Detail = exception.Message
-        };
-
-        // return to response
-        await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
-
-        return true;
+            HttpContext = httpContext,
+            Exception = exception,
+            ProblemDetails = new ProblemDetails
+            {
+                Type = exception.GetType().Name,
+                Status = StatusCodes.Status400BadRequest,
+                Title = "Validation Error Ocurred",
+                Instance = httpContext.Request.Path,
+                Detail = exception.Message
+            },
+            
+        });
     }
 
 

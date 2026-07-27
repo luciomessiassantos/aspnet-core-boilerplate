@@ -1,11 +1,13 @@
 using System.Text;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using AspDotnetBoilerplate.src.Domain;
 using AspDotnetBoilerplate.src.Infrastructure;
 using AspDotnetBoilerplate.src.Shared.Exceptions;
 using AspDotnetBoilerplate.src.Shared.Exceptions.Handlers;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Hybrid;
 using Microsoft.IdentityModel.Tokens;
@@ -108,11 +110,68 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>(options =>
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
 
+builder.Services.AddRateLimiter(cfg => cfg
+    .AddFixedWindowLimiter(policyName: "fixed", opt =>
+    {
+        opt.PermitLimit = 4;
+        opt.Window = TimeSpan.FromSeconds(12);
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 2;
+    }));
+
+builder.Services.AddRateLimiter(cfg =>
+{
+    cfg.AddSlidingWindowLimiter(policyName: "sliding", opt =>
+    {
+        opt.PermitLimit = 4;
+        opt.Window = TimeSpan.FromSeconds(12);
+        opt.SegmentsPerWindow = 4;
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.QueueLimit = 4;
+    });
+
+    cfg.OnRejected = async (context, CancellationToken) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+        {
+            
+        }
+    };
+});
+
+builder.Services.AddRateLimiter(cfg => cfg
+    .AddTokenBucketLimiter(policyName: "token", opt =>
+    {
+        opt.AutoReplenishment = true;
+        opt.QueueLimit = 4;
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        opt.ReplenishmentPeriod = TimeSpan.FromSeconds(20);
+        opt.TokenLimit = 20;
+        opt.TokensPerPeriod = 5;
+    }));
+
+builder.Services.AddRateLimiter(cfg => cfg
+    .AddConcurrencyLimiter(policyName: "concurrency", opt =>
+    {
+        opt.PermitLimit = 4;
+        opt.QueueLimit = 4;
+        opt.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+
+    }));
+
+builder.Services.AddProblemDetails(config =>
+{
+    config.CustomizeProblemDetails = context =>
+    {
+        context.ProblemDetails.Extensions.TryAdd("requestId", context.HttpContext.TraceIdentifier);
+    };
+});
+
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 builder.Services.AddHealthChecks();
-builder.Services.AddProblemDetails();
+
 
 
 List<string> origins = [
@@ -146,8 +205,9 @@ if (app.Environment.IsDevelopment())
 
 }
 
-app.UseExceptionHandler();
+app.UseRateLimiter();
 
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseCors(corsPolicySpecifiedOrigins);
